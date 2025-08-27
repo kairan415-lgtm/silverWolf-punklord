@@ -1,0 +1,341 @@
+<!DOCTYPE html><html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Silver Wolf — Cyberpunk Image Synth</title>
+  <meta name="description" content="Gerador de imagens com estética cyberpunk inspirado na personagem Silver Wolf (Honkai: Star Rail)." />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;800&family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
+  <style>
+    :root{
+      --bg:#0a0b10;
+      --panel:#0f1018;
+      --primary:#7b5cff; /* neon purple */
+      --secondary:#00e5ff; /* neon cyan */
+      --accent:#ff2bd6;   /* magenta */
+      --grid:#20223a;
+      --text:#e6e6f0;
+      --muted:#9aa0b4;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0;
+      color:var(--text);
+      background: radial-gradient(1200px 600px at 75% 10%, rgba(123,92,255,.12), transparent 60%),
+                  radial-gradient(900px 500px at 20% 90%, rgba(0,229,255,.10), transparent 60%),
+                  linear-gradient(180deg, #090a10, #0a0b12 40%, #080910);
+      font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Arial, sans-serif;
+      letter-spacing: .2px;
+      overflow-x:hidden;
+    }
+    /* Futuristic scan grid background */
+    .grid::before{
+      content:""; position:fixed; inset:0; pointer-events:none; opacity:.25;
+      background-image:
+        radial-gradient(circle at 50% 50%, transparent 0, transparent 29px, rgba(123,92,255,.06) 30px),
+        linear-gradient(90deg, rgba(0,229,255,.06) 1px, transparent 1px),
+        linear-gradient(0deg, rgba(0,229,255,.06) 1px, transparent 1px);
+      background-size:60px 60px, 60px 60px, 60px 60px;
+      mix-blend-mode:screen;
+    }
+    .scanline{position:fixed; inset:0; pointer-events:none; background: repeating-linear-gradient(0deg, rgba(255,255,255,.04), rgba(255,255,255,.04) 1px, transparent 1px, transparent 3px); opacity:.06}header{
+  position:sticky; top:0; z-index:50;
+  background: linear-gradient(180deg, rgba(10,11,16,.95), rgba(10,11,16,.75));
+  backdrop-filter: blur(10px);
+  border-bottom:1px solid rgba(123,92,255,.22);
+}
+.container{max-width:1100px; margin:0 auto; padding:20px;}
+
+.brand{display:flex; gap:14px; align-items:center}
+.brand .logo{
+  width:42px; height:42px; border-radius:14px;
+  background: conic-gradient(from 210deg, var(--secondary), var(--primary), var(--accent), var(--secondary));
+  box-shadow:0 0 20px rgba(123,92,255,.6), inset 0 0 20px rgba(0,229,255,.4);
+  position:relative; isolation:isolate;
+}
+.brand .logo::after{content:""; position:absolute; inset:6px; border-radius:10px; background: #0e0f16; box-shadow: inset 0 0 16px rgba(123,92,255,.4)}
+.brand h1{font-family: Orbitron, monospace; font-weight:800; margin:0; letter-spacing:1px; text-transform:uppercase; font-size: clamp(20px, 3vw, 28px)}
+.beta{font-size:12px; padding:4px 8px; border-radius:999px; border:1px solid rgba(0,229,255,.3); color:var(--secondary);}
+
+.hero{display:grid; grid-template-columns:1.2fr .8fr; gap:26px; align-items:center; padding:26px 0}
+.hero .title{font-family: Orbitron, monospace; font-size: clamp(28px, 5vw, 48px); line-height:1.08; margin:0}
+.neon{
+  text-shadow: 0 0 5px var(--secondary), 0 0 12px var(--secondary), 0 0 24px var(--primary);
+}
+.hero p{color:var(--muted); margin-top:8px}
+
+.card{
+  background:linear-gradient(180deg, rgba(17,18,30,.8), rgba(12,13,22,.8));
+  border:1px solid rgba(123,92,255,.25);
+  border-radius:18px; box-shadow: 0 10px 30px rgba(0,0,0,.4), inset 0 0 30px rgba(123,92,255,.06);
+}
+
+.panel{padding:18px}
+.prompt-row{display:flex; gap:12px; flex-wrap:wrap; align-items:stretch}
+.prompt-row input[type="text"]{
+  flex:1 1 380px; min-height:50px; padding:14px 16px; border-radius:12px; border:1px solid rgba(0,229,255,.25); background:#0b0d16; color:var(--text);
+  outline:none; box-shadow: inset 0 0 18px rgba(0,229,255,.08);
+}
+.btn{
+  --ring:rgba(0,229,255,.4);
+  display:inline-flex; align-items:center; gap:10px; padding:12px 16px; border-radius:12px; font-weight:600; letter-spacing:.4px;
+  border:1px solid rgba(123,92,255,.35); color:white; background:linear-gradient(180deg, rgba(123,92,255,.45), rgba(123,92,255,.22));
+  box-shadow: 0 0 0 0 var(--ring); cursor:pointer; transition: transform .05s ease, box-shadow .2s ease, filter .2s ease;
+}
+.btn:hover{filter:saturate(1.2) brightness(1.05)}
+.btn:active{transform:translateY(1px)}
+.btn.secondary{background:linear-gradient(180deg, rgba(0,229,255,.35), rgba(0,229,255,.16)); border-color: rgba(0,229,255,.45)}
+.btn.ghost{background:transparent; border-color:rgba(123,92,255,.25); color:var(--muted)}
+
+.options{display:flex; gap:10px; flex-wrap:wrap; margin-top:10px}
+.chip{padding:8px 12px; border:1px dashed rgba(0,229,255,.35); border-radius:999px; color:var(--secondary); cursor:pointer; user-select:none}
+
+.gallery{display:grid; grid-template-columns: repeat(auto-fill, minmax(220px,1fr)); gap:16px; padding:18px}
+.item{position:relative; border-radius:16px; overflow:hidden; background:#0c0e18; border:1px solid rgba(123,92,255,.25)}
+.item img, .item canvas{width:100%; height:260px; object-fit:cover; display:block; background:#06070c}
+.item .actions{position:absolute; inset:auto 10px 10px 10px; display:flex; gap:8px; justify-content:space-between}
+
+.sidebar{position:relative}
+.char-card{position:relative; overflow:hidden; border-radius:18px}
+.char-card .meta{position:absolute; inset:auto 6px 6px 6px; display:flex; justify-content:space-between; gap:6px}
+.meta .tag{background:rgba(0,229,255,.15); border:1px solid rgba(0,229,255,.3); color:var(--secondary); border-radius:999px; padding:6px 10px; font-size:12px}
+
+.footer{opacity:.8; color:var(--muted); font-size:13px; padding:24px 20px}
+.footer a{color:var(--secondary)}
+
+@media (max-width: 900px){
+  .hero{grid-template-columns:1fr;}
+}
+
+  </style>
+</head>
+<body class="grid">
+  <div class="scanline"></div>
+  <header>
+    <div class="container" style="display:flex; align-items:center; justify-content:space-between; gap:16px">
+      <div class="brand">
+        <div class="logo" aria-hidden="true"></div>
+        <h1>Silver Wolf <span style="color:var(--secondary)">Synth</span></h1>
+      </div>
+      <span class="beta">CYBERPUNK // v0.1</span>
+    </div>
+  </header>  <main class="container">
+    <section class="hero">
+      <div class="left">
+        <h2 class="title neon">Gere imagens no estilo <span style="color:var(--secondary)">Silver Wolf</span></h2>
+        <p>Digite um comando (prompt) — por exemplo: <em>“Silver Wolf hackeando um skyline neon sob chuva, estilo low-poly, luz roxa e ciano”</em>. Clique em <strong>Gerar</strong> e depois use <strong>Baixar</strong> em cada imagem.</p><div class="card panel" role="form" aria-label="Gerador de imagens">
+      <div class="prompt-row">
+        <input id="prompt" type="text" placeholder="Descreva a imagem que deseja no universo da Silver Wolf…" />
+        <button id="btn-generate" class="btn" title="Gerar imagens"><span>⚡</span> Gerar</button>
+        <button id="btn-clear" class="btn ghost" title="Limpar resultados">Limpar</button>
+      </div>
+
+      <div class="options">
+        <div class="chip" data-preset="pixelart">pixel art</div>
+        <div class="chip" data-preset="glitch">efeito glitch</div>
+        <div class="chip" data-preset="rain">noite chuvosa</div>
+        <div class="chip" data-preset="bokeh">bokeh neon</div>
+        <div class="chip" data-preset="city">ruas da cidade</div>
+      </div>
+    </div>
+  </div>
+
+  <aside class="sidebar">
+    <div class="char-card card">
+      <!-- ⚠️ Substitua o arquivo abaixo por uma imagem da Silver Wolf que você possua direitos para usar -->
+      <img id="hero-image" src="assets/silverwolf.png" alt="Imagem temática da personagem Silver Wolf" style="width:100%; height:100%; object-fit:cover; aspect-ratio: 4/5; display:block"/>
+      <div class="meta">
+        <span class="tag">Honkai: Star Rail</span>
+        <span class="tag">Silver Wolf</span>
+      </div>
+    </div>
+  </aside>
+</section>
+
+<section class="card" style="margin-top:20px">
+  <div class="gallery" id="gallery" aria-live="polite"></div>
+</section>
+
+<p class="footer">
+  Este projeto é um fan site não-oficial, sem afiliação à miHoYo/HoYoverse. Use apenas artes/imagens de que você tenha permissão de uso. Para geração real via IA, conecte um endpoint no código (ver comentários).<br/>
+  Dica: troque <code>assets/silverwolf.png</code> por um arquivo seu para personalizar o banner.
+</p>
+
+  </main>  <script>
+    // ================================
+    // ⚙️ CONFIGURAÇÃO DE ENDPOINT (opcional)
+    // Se você possuir um backend de geração de imagens, defina a URL e a função fetchImages()
+    // O backend deve responder com { images: ["data:image/png;base64,....", ...] }
+    const API_ENDPOINT = ""; // exemplo: "/api/generate" ou URL completa
+
+    async function fetchImagesFromAPI(prompt){
+      if(!API_ENDPOINT) throw new Error('Sem endpoint definido');
+      const res = await fetch(API_ENDPOINT, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prompt, n: 4 })
+      });
+      if(!res.ok) throw new Error('Falha ao gerar no servidor');
+      const data = await res.json();
+      if(!data.images || !Array.isArray(data.images)) throw new Error('Resposta inválida');
+      return data.images; // base64 URLs
+    }
+
+    // ================================
+    // 🧪 MODO MOCK (local) — gera imagens estilizadas em canvas, sem backend
+    function generateMockImage(prompt, seed){
+      const w = 768, h = 1024; // retrato padrão
+      const canvas = document.createElement('canvas');
+      canvas.width = w; canvas.height = h;
+      const g = canvas.getContext('2d');
+
+      // fundo gradiente neon
+      const grad = g.createLinearGradient(0,0,w,h);
+      grad.addColorStop(0, '#0b0c16');
+      grad.addColorStop(.5, 'rgba(123,92,255,0.35)');
+      grad.addColorStop(1, 'rgba(0,229,255,0.35)');
+      g.fillStyle = grad; g.fillRect(0,0,w,h);
+
+      // grade perspectivada
+      g.strokeStyle = 'rgba(0,229,255,0.2)'; g.lineWidth = 1;
+      for(let y=0; y<h; y+=22){
+        g.globalAlpha = 0.8 - y/h * 0.6; g.beginPath(); g.moveTo(0,y); g.lineTo(w,y); g.stroke();
+      }
+      g.globalAlpha = 1;
+
+      // partículas
+      for(let i=0;i<90;i++){
+        g.fillStyle = Math.random()>.6 ? 'rgba(0,229,255,.6)' : 'rgba(123,92,255,.6)';
+        g.beginPath();
+        const x = Math.random()*w, y = Math.random()*h, r = Math.random()*2+0.6;
+        g.arc(x,y,r,0,Math.PI*2); g.fill();
+      }
+
+      // moldura/ HUD
+      g.strokeStyle = 'rgba(255,43,214,.7)'; g.lineWidth = 3;
+      g.strokeRect(18,18,w-36,h-36);
+
+      // texto do prompt com efeito glitch simples
+      const lines = wrapText(prompt.toUpperCase(), 22, g, w-120);
+      g.font = '800 34px Orbitron, monospace';
+      g.textAlign = 'left'; g.textBaseline = 'top';
+      const baseX = 60, baseY = h- (lines.length*40 + 60);
+      lines.forEach((line, i)=>{
+        const y = baseY + i*40;
+        g.fillStyle = 'rgba(0,229,255,0.9)'; g.fillText(line, baseX, y);
+        g.fillStyle = 'rgba(123,92,255,0.7)'; g.fillText(line, baseX+2, y+1);
+      });
+
+      return canvas.toDataURL('image/png');
+
+      function wrapText(text, maxWords, ctx, maxWidth){
+        const words = text.split(' ');
+        const lines = []; let line = '';
+        for(const w of words){
+          const test = line ? line + ' ' + w : w;
+          const m = ctx.measureText(test);
+          if(m.width > maxWidth){
+            lines.push(line); line = w;
+          } else { line = test; }
+        }
+        if(line) lines.push(line);
+        return lines.slice(0, 4);
+      }
+    }
+
+    // ================================
+    // 🔗 UI Logic
+    const promptInput = document.getElementById('prompt');
+    const btnGenerate = document.getElementById('btn-generate');
+    const btnClear = document.getElementById('btn-clear');
+    const gallery = document.getElementById('gallery');
+
+    // presets
+    document.querySelectorAll('.chip').forEach(chip=>{
+      chip.addEventListener('click', ()=>{
+        const tag = chip.dataset.preset;
+        const text = promptInput.value.trim();
+        const extras = {
+          pixelart: ', em pixel art 32-bit, paleta limitada',
+          glitch: ', com glitch RGB e aberração cromática',
+          rain: ', cena noturna chuvosa com reflexos no asfalto',
+          bokeh: ', bokeh neon e luz volumétrica',
+          city: ', ruínas digitais em uma cidade hacker futurista'
+        };
+        promptInput.value = (text || 'Silver Wolf em estilo cyberpunk') + (extras[tag] || '');
+        promptInput.focus();
+      });
+    });
+
+    btnGenerate.addEventListener('click', async ()=>{
+      const prompt = (promptInput.value || '').trim();
+      if(!prompt){
+        pulse(promptInput); return;
+      }
+      btnGenerate.disabled = true; btnGenerate.textContent = 'Gerando…';
+      try{
+        let images;
+        try{
+          images = await fetchImagesFromAPI(prompt);
+        }catch(e){
+          // fallback local
+          images = [0,1,2,3].map(i=> generateMockImage(prompt, i));
+        }
+        renderImages(images);
+      } finally{
+        btnGenerate.disabled = false; btnGenerate.textContent = 'Gerar';
+      }
+    });
+
+    btnClear.addEventListener('click', ()=>{
+      gallery.innerHTML = '';
+      promptInput.value = '';
+      promptInput.focus();
+    });
+
+    function renderImages(urls){
+      urls.forEach((src, idx)=>{
+        const card = document.createElement('div'); card.className = 'item';
+        const img = document.createElement(src.startsWith('data:image') ? 'img' : 'img');
+        img.src = src; img.alt = 'Imagem gerada '+(idx+1);
+        const actions = document.createElement('div'); actions.className = 'actions';
+        const downloadBtn = createButton('⬇ Baixar', 'secondary');
+        downloadBtn.addEventListener('click', ()=> downloadImage(src, `silverwolf_${Date.now()}_${idx+1}.png`));
+        const regenBtn = createButton('♻ Regerar', 'ghost');
+        regenBtn.addEventListener('click', ()=>{
+          const newSrc = generateMockImage(promptInput.value || 'Silver Wolf cyberpunk', Math.random());
+          img.src = newSrc;
+        });
+        actions.append(downloadBtn, regenBtn);
+        card.append(img, actions);
+        gallery.prepend(card);
+      });
+    }
+
+    function createButton(label, variant){
+      const b = document.createElement('button'); b.className = 'btn ' + (variant||''); b.type='button'; b.textContent = label; return b;
+    }
+
+    async function downloadImage(src, filename){
+      try{
+        const a = document.createElement('a');
+        if(src.startsWith('data:image')){
+          a.href = src;
+        } else {
+          const res = await fetch(src); const blob = await res.blob();
+          a.href = URL.createObjectURL(blob);
+        }
+        a.download = filename; document.body.appendChild(a); a.click(); a.remove();
+      } catch(err){
+        alert('Não foi possível baixar a imagem.');
+      }
+    }
+
+    function pulse(el){
+      el.style.boxShadow = '0 0 0 6px rgba(0,229,255,.18)';
+      setTimeout(()=> el.style.boxShadow = '', 400);
+    }
+  </script></body>
+  </html>
